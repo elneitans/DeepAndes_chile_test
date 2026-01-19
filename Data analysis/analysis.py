@@ -1,15 +1,16 @@
-UNITA_PATH = "unita/summary.json"
-CHUG_PATH = "chug/summary.json"
-LLUTA_PATH = "lluta/summary.json"
-
 import json
 import matplotlib.pyplot as plt
 import numpy as np
 import shutil
 from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+UNITA_PATH = BASE_DIR / "data/unita_raw/summary.json"
+CHUG_PATH = BASE_DIR / "data/chugchug_raw/summary.json"
+LLUTA_PATH = BASE_DIR / "data/lluta_raw/summary.json"
+
 # ============================================================================
-# UTILITY FUNCTIONS
+# CALCULATION FUNCTIONS
 # ============================================================================
 
 def load_json(path):
@@ -63,41 +64,45 @@ def calculate_pixel_scale(geos_sizes):
         bbox_height = geo['boxmeters']['height_m']
         img_width = geo['shape']['width']
         img_height = geo['shape']['height']
-        
+
         # Calculate meters per pixel for this geo
         width_scale = bbox_width / img_width if img_width > 0 else 0
         height_scale = bbox_height / img_height if img_height > 0 else 0
-        
+
         # Use average scale of width and height
         scale = (width_scale + height_scale) / 2
         scales.append(scale)
-    
+
     return np.mean(scales) if scales else 0
+
+# ============================================================================
+# DISPLAY FUNCTIONS
+# ============================================================================
 
 def print_geos_statistics(geos_sizes_list, dataset_names):
     """Print average (excluding outliers) dimensions and pixel-based window sizes for each dataset."""
     print("\n" + "="*90)
     print("GEO DIMENSIONS STATISTICS (for sliding window determination)")
     print("="*90)
-    
+
     for geos_sizes, name in zip(geos_sizes_list, dataset_names):
         widths, heights, areas = extract_metrics(geos_sizes)
-        
+
         # Remove outliers for mean calculation
         widths_no_outliers = _remove_outliers_iqr(widths)
         heights_no_outliers = _remove_outliers_iqr(heights)
         areas_no_outliers = _remove_outliers_iqr(areas)
-        
+
         width_mean = np.mean(widths_no_outliers)
         height_mean = np.mean(heights_no_outliers)
-        
+
         # Calculate scale (meters per pixel)
         scale = calculate_pixel_scale(geos_sizes)
-        
+
         # Convert meters to pixels
         window_size_m = max(int(np.ceil(width_mean)), int(np.ceil(height_mean)))
         window_size_px = int(np.ceil(window_size_m / scale)) if scale > 0 else 0
-        
+
         print(f"\n{name}:")
         print(f"  Count:           {len(widths)} (outliers removed from mean calculation)")
         print(f"  Width:  avg={width_mean:.1f}m  min={min(widths):.1f}m  max={max(widths):.1f}m")
@@ -105,7 +110,7 @@ def print_geos_statistics(geos_sizes_list, dataset_names):
         print(f"  Area:   avg={np.mean(areas_no_outliers):.1f}m²  min={min(areas):.1f}m²  max={max(areas):.1f}m²")
         print(f"  Pixel scale: {scale:.4f} m/pixel")
         print(f"  Suggested sliding window: {window_size_m}m x {window_size_m}m ({window_size_px}px x {window_size_px}px)")
-    
+
     print("\n" + "="*90)
 
 def plot_geos_statistics(geos_sizes_list, dataset_names):
@@ -113,27 +118,27 @@ def plot_geos_statistics(geos_sizes_list, dataset_names):
     num_datasets = len(geos_sizes_list)
     fig, axes = plt.subplots(1, num_datasets, figsize=(18, 8))
     fig.suptitle("Geo Dimensions Statistics (for Sliding Window Determination)", fontsize=16, fontweight='bold')
-    
+
     # Handle single dataset case
     if num_datasets == 1:
         axes = [axes]
-    
+
     for ax, geos_sizes, name in zip(axes, geos_sizes_list, dataset_names):
         widths, heights, areas = extract_metrics(geos_sizes)
-        
+
         # Remove outliers
         widths_no_outliers = _remove_outliers_iqr(widths)
         heights_no_outliers = _remove_outliers_iqr(heights)
         areas_no_outliers = _remove_outliers_iqr(areas)
-        
+
         width_mean = np.mean(widths_no_outliers)
         height_mean = np.mean(heights_no_outliers)
-        
+
         # Calculate scale and window sizes
         scale = calculate_pixel_scale(geos_sizes)
         window_size_m = max(int(np.ceil(width_mean)), int(np.ceil(height_mean)))
         window_size_px = int(np.ceil(window_size_m / scale)) if scale > 0 else 0
-        
+
         # Create statistics text
         stats_text = f"{name}\n"
         stats_text += f"{'='*30}\n\n"
@@ -156,33 +161,29 @@ def plot_geos_statistics(geos_sizes_list, dataset_names):
         stats_text += f"Window Size:\n"
         stats_text += f"  {window_size_m}m × {window_size_m}m\n"
         stats_text += f"  {window_size_px}px × {window_size_px}px"
-        
+
         # Display text on axis
         ax.axis('off')
         ax.text(0.5, 0.5, stats_text, fontsize=10, family='monospace',
                verticalalignment='center', horizontalalignment='center',
                bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.3, pad=1.5))
-    
+
     plt.tight_layout()
     return fig
-
-# ============================================================================
-# PLOTTING FUNCTIONS
-# ============================================================================
 
 def plot_distributions(widths, heights, areas, title="Distribution of Geo Dimensions"):
     """Create box plots for widths, heights, and areas."""
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
     fig.suptitle(title, fontsize=16)
-    
+
     metrics = [(widths, 'Width (meters)', 0), (heights, 'Height (meters)', 1), (areas, 'Area (m²)', 2)]
-    
+
     for data, label, idx in metrics:
         axes[idx].boxplot(data)
         axes[idx].set_ylabel(label)
         axes[idx].set_title(f'{label} Distribution')
         axes[idx].grid(True, alpha=0.3)
-    
+
     plt.tight_layout()
     return fig
 
@@ -190,17 +191,17 @@ def plot_histograms(widths, heights, areas, title="Distribution of Geo Dimension
     """Create histograms for widths, heights, and areas."""
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
     fig.suptitle(title, fontsize=16)
-    
+
     colors = ['skyblue', 'lightgreen', 'lightcoral']
     metrics = [(widths, 'Width (meters)', 0), (heights, 'Height (meters)', 1), (areas, 'Area (m²)', 2)]
-    
+
     for data, label, idx in metrics:
         axes[idx].hist(data, bins=bins, color=colors[idx], edgecolor='black', alpha=0.7)
         axes[idx].set_xlabel(label)
         axes[idx].set_ylabel('Frequency')
         axes[idx].set_title(f'{label} Distribution')
         axes[idx].grid(True, alpha=0.3, axis='y')
-    
+
     plt.tight_layout()
     return fig
 
@@ -208,31 +209,31 @@ def plot_combined_comparison(datasets, dataset_names, title="Comparison of Geo D
     """Create box plots comparing distributions across multiple datasets with consistent scales."""
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
     fig.suptitle(title, fontsize=16)
-    
+
     # Extract metrics for all datasets
     widths_data = [extract_metrics(ds)[0] for ds in datasets]
     heights_data = [extract_metrics(ds)[1] for ds in datasets]
     areas_data = [extract_metrics(ds)[2] for ds in datasets]
-    
+
     # Calculate consistent axis limits
     widths_min, widths_max = _get_axis_limits_with_padding(widths_data)
     heights_min, heights_max = _get_axis_limits_with_padding(heights_data)
     areas_min, areas_max = _get_axis_limits_with_padding(areas_data)
-    
+
     # Plot metrics
     metrics = [
         (widths_data, 'Width (meters)', widths_min, widths_max, 0),
         (heights_data, 'Height (meters)', heights_min, heights_max, 1),
         (areas_data, 'Area (m²)', areas_min, areas_max, 2)
     ]
-    
+
     for data, label, y_min, y_max, idx in metrics:
         axes[idx].boxplot(data, labels=dataset_names)
         axes[idx].set_ylabel(label)
         axes[idx].set_title(f'{label} by Dataset')
         axes[idx].set_ylim(y_min, y_max)
         axes[idx].grid(True, alpha=0.3, axis='y')
-    
+
     plt.tight_layout()
     return fig
 
@@ -241,26 +242,26 @@ def plot_single_figure_all_datasets(all_data, dataset_names, title="Distribution
     num_datasets = len(all_data)
     fig, axes = plt.subplots(num_datasets, 3, figsize=(18, 5*num_datasets))
     fig.suptitle(title, fontsize=16)
-    
+
     # Handle single dataset case
     if num_datasets == 1:
         axes = axes.reshape(1, -1)
-    
+
     colors = ['skyblue', 'lightgreen', 'lightcoral']
-    
+
     # Calculate global limits for consistent scaling across all rows
     all_widths = [width for data in all_data for width in extract_metrics(data)[0]]
     all_heights = [height for data in all_data for height in extract_metrics(data)[1]]
     all_areas = [area for data in all_data for area in extract_metrics(data)[2]]
-    
+
     widths_min, widths_max = _get_axis_limits_with_padding([all_widths])
     heights_min, heights_max = _get_axis_limits_with_padding([all_heights])
     areas_min, areas_max = _get_axis_limits_with_padding([all_areas])
-    
+
     # Plot each dataset
     for row, (geos_sizes, dataset_name) in enumerate(zip(all_data, dataset_names)):
         widths, heights, areas = extract_metrics(geos_sizes)
-        
+
         # Width histogram
         axes[row, 0].hist(widths, bins=bins, color=colors[0], edgecolor='black', alpha=0.7)
         axes[row, 0].set_xlabel('Width (meters)')
@@ -268,7 +269,7 @@ def plot_single_figure_all_datasets(all_data, dataset_names, title="Distribution
         axes[row, 0].set_title(f'{dataset_name} - Width Distribution')
         axes[row, 0].set_xlim(widths_min, widths_max)
         axes[row, 0].grid(True, alpha=0.3, axis='y')
-        
+
         # Height histogram
         axes[row, 1].hist(heights, bins=bins, color=colors[1], edgecolor='black', alpha=0.7)
         axes[row, 1].set_xlabel('Height (meters)')
@@ -276,7 +277,7 @@ def plot_single_figure_all_datasets(all_data, dataset_names, title="Distribution
         axes[row, 1].set_title(f'{dataset_name} - Height Distribution')
         axes[row, 1].set_xlim(heights_min, heights_max)
         axes[row, 1].grid(True, alpha=0.3, axis='y')
-        
+
         # Area histogram
         axes[row, 2].hist(areas, bins=bins, color=colors[2], edgecolor='black', alpha=0.7)
         axes[row, 2].set_xlabel('Area (m²)')
@@ -284,7 +285,7 @@ def plot_single_figure_all_datasets(all_data, dataset_names, title="Distribution
         axes[row, 2].set_title(f'{dataset_name} - Area Distribution')
         axes[row, 2].set_xlim(areas_min, areas_max)
         axes[row, 2].grid(True, alpha=0.3, axis='y')
-    
+
     plt.tight_layout()
     return fig
 
