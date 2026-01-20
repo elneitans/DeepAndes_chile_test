@@ -12,9 +12,9 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 AREA_SUBDIR = "chug_polygons"  # change this to switch dataset folder
-TARGET_SIZE = (200, 200)  # width, height in pixels
+TARGET_SIZE = (300, 300)  # width, height in pixels
 RESULTS_CSV = BASE_DIR / "Tests" / "combined_results.csv"
-SCATTER_PNG = BASE_DIR / "Tests" / "chug" / "chug_combined200x200.png"
+SCATTER_PNG = BASE_DIR / "Tests" / "chug" / "chug_combined300x300.png"
 MAX_WORKERS = max(1, (os.cpu_count() or 4) // 2)  # Use half of available cores to avoid overwhelming system
 
 
