@@ -168,3 +168,50 @@ def compute_glcm_contrast(image_array, distances=[1], angles=[0], levels=256) ->
     # Extract contrast property (first distance and angle only)
     contrast = graycoprops(glcm, 'contrast')[0, 0]
     return float(contrast)
+
+
+def compute_glcm_homogeneity(image_array, distances=[1], angles=[0], levels=256) -> float:
+    """
+    Compute GLCM (Gray-Level Co-occurrence Matrix) homogeneity for a grayscale image.
+
+    GLCM homogeneity measures the closeness of the distribution of elements in the GLCM
+    to its diagonal. High homogeneity values indicate similar gray-level patterns,
+    while low values suggest more variation.
+
+    The homogeneity is calculated as: sum(P[i, j] / (1 + abs(i - j)))
+    where P is the normalized GLCM matrix.
+
+    Args:
+        image_array: numpy array (H x W) of pixel values (will be cast to uint8).
+        distances: list of pixel pair distance offsets (in pixel units).
+        angles: list of angles in radians (e.g., [0] for horizontal, [0, np.pi/4, np.pi/2, 3*np.pi/4] for all).
+        levels: number of gray levels to quantize the image into (default 256 for 8-bit).
+
+    Returns:
+        GLCM homogeneity value (float). Range [0, 1]. Higher values indicate more uniform texture.
+    """
+    # Ensure image is uint8 type
+    image = image_array.astype(np.uint8)
+    
+    # Compute GLCM
+    glcm = graycomatrix(
+        image,
+        distances=distances,
+        angles=angles,
+        levels=levels,
+        symmetric=True,
+        normed=True
+    )
+    
+    # Extract homogeneity property using graycoprops (first distance and angle only)
+    homogeneity = graycoprops(glcm, 'homogeneity')[0, 0]
+    
+    # Alternative manual calculation: homogeneity = sum(P[i, j] / (1 + abs(i - j)))
+    # This verifies the formula provided
+    # P = glcm[:, :, 0, 0]
+    # manual_homogeneity = 0.0
+    # for i in range(levels):
+    #     for j in range(levels):
+    #         manual_homogeneity += P[i, j] / (1 + abs(i - j))
+    
+    return float(homogeneity)

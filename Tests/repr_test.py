@@ -20,7 +20,7 @@ import numpy as np
 from typing import Dict, List, Tuple
 
 # Import our custom modules
-from methods import morans_i, spatial_entropy, compute_glcm_contrast
+from methods import morans_i, spatial_entropy, compute_glcm_contrast, compute_glcm_homogeneity
 from visualize import (
     plot_1d_histogram,
     plot_1d_boxplot,
@@ -90,7 +90,7 @@ class GeoglyphAnalyzer:
         
         Args:
             image_array: Grayscale numpy array.
-            methods: List of method names ('moran', 'entropy', 'contrast').
+            methods: List of method names ('moran', 'entropy', 'contrast', 'homogeneity').
         
         Returns:
             Dictionary of {method: value}.
@@ -106,6 +106,9 @@ class GeoglyphAnalyzer:
         
         if 'contrast' in methods:
             metrics['contrast'] = compute_glcm_contrast(image_array, distances=[1], angles=[0], levels=256)
+        
+        if 'homogeneity' in methods:
+            metrics['homogeneity'] = compute_glcm_homogeneity(image_array, distances=[1], angles=[0], levels=256)
         
         return metrics
     
@@ -169,7 +172,8 @@ class GeoglyphAnalyzer:
         metric_props = {
             'moran': ("moran", "Moran's I", "Moran's I"),
             'entropy': ("entropy", "Spatial Entropy", "Entropy (bits)"),
-            'contrast': ("contrast", "GLCM Contrast", "GLCM Contrast")
+            'contrast': ("contrast", "GLCM Contrast", "GLCM Contrast"),
+            'homogeneity': ("homogeneity", "GLCM Homogeneity", "GLCM Homogeneity")
         }
         
         # 1D plots: histogram and boxplot for each metric
@@ -198,7 +202,10 @@ class GeoglyphAnalyzer:
             method_pairs = [
                 ('moran', 'entropy'),
                 ('moran', 'contrast'),
-                ('entropy', 'contrast')
+                ('moran', 'homogeneity'),
+                ('entropy', 'contrast'),
+                ('entropy', 'homogeneity'),
+                ('contrast', 'homogeneity')
             ]
             
             for m1, m2 in method_pairs:
@@ -283,7 +290,7 @@ Examples:
         "--methods",
         type=str,
         nargs='+',
-        choices=['moran', 'entropy', 'contrast'],
+        choices=['moran', 'entropy', 'contrast', 'homogeneity'],
         required=True,
         help="Methods to compute (can specify multiple)"
     )
@@ -307,7 +314,7 @@ Examples:
     target_size = tuple(args.size)
     
     # Validate methods
-    valid_methods = {'moran', 'entropy', 'contrast'}
+    valid_methods = {'moran', 'entropy', 'contrast', 'homogeneity'}
     requested_methods = set(args.methods)
     if not requested_methods.issubset(valid_methods):
         parser.error(f"Invalid methods: {requested_methods - valid_methods}")
