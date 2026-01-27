@@ -215,3 +215,43 @@ def compute_glcm_homogeneity(image_array, distances=[1], angles=[0], levels=256)
     #         manual_homogeneity += P[i, j] / (1 + abs(i - j))
     
     return float(homogeneity)
+
+
+def compute_glcm_energy(image_array, distances=[1], angles=[0], levels=256) -> float:
+    """
+    Compute GLCM (Gray-Level Co-occurrence Matrix) energy for a grayscale image.
+
+    GLCM energy measures the sum of squared elements in the GLCM. Also known as 
+    Angular Second Moment (ASM), it indicates the orderliness of the texture.
+    High energy values indicate repetitive patterns or uniformity, while low values
+    suggest more complex or random textures.
+
+    The energy is calculated as: sum(P[i, j]^2)
+    where P is the normalized GLCM matrix.
+
+    Args:
+        image_array: numpy array (H x W) of pixel values (will be cast to uint8).
+        distances: list of pixel pair distance offsets (in pixel units).
+        angles: list of angles in radians (e.g., [0] for horizontal, [0, np.pi/4, np.pi/2, 3*np.pi/4] for all).
+        levels: number of gray levels to quantize the image into (default 256 for 8-bit).
+
+    Returns:
+        GLCM energy value (float). Range [0, 1]. Higher values indicate more ordered texture.
+    """
+    # Ensure image is uint8 type
+    image = image_array.astype(np.uint8)
+    
+    # Compute GLCM
+    glcm = graycomatrix(
+        image,
+        distances=distances,
+        angles=angles,
+        levels=levels,
+        symmetric=True,
+        normed=True
+    )
+    
+    # Extract energy property using graycoprops (first distance and angle only)
+    energy = graycoprops(glcm, 'energy')[0, 0]
+    return float(energy)
+

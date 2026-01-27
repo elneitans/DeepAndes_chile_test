@@ -26,7 +26,7 @@ from typing import Dict, List, Tuple, Callable
 from itertools import combinations
 
 # Import our custom modules
-from methods import morans_i, spatial_entropy, compute_glcm_contrast, compute_glcm_homogeneity
+from methods import morans_i, spatial_entropy, compute_glcm_contrast, compute_glcm_homogeneity, compute_glcm_energy
 from visualize import (
     plot_1d_histogram,
     plot_1d_boxplot,
@@ -65,6 +65,13 @@ METHOD_REGISTRY = {
         'description': "Gray Level Co-occurrence Matrix Homogeneity",
         'unit': "GLCM Homogeneity",
         'compute_func': lambda img_arr: compute_glcm_homogeneity(img_arr, distances=[1], angles=[0], levels=256),
+        'input_type': 'array',
+    },
+    'energy': {
+        'name': "GLCM Energy",
+        'description': "Gray Level Co-occurrence Matrix Energy (Angular Second Moment)",
+        'unit': "GLCM Energy",
+        'compute_func': lambda img_arr: compute_glcm_energy(img_arr, distances=[1], angles=[0], levels=256),
         'input_type': 'array',
     },
 }
