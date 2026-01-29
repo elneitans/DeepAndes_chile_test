@@ -10,8 +10,9 @@ import numpy as np
 import pandas as pd
 from libpysal.weights import lat2W
 from esda.moran import Moran
-from skimage.feature import graycomatrix, graycoprops, hog
+from skimage.feature import graycomatrix, graycoprops, hog, local_binary_pattern
 from skimage.measure import moments_hu, moments_central
+from scipy.stats import entropy
 
 
 def morans_i(image_df, adjacency: str = "rook", wrap: bool = False, nan_policy: str = "omit") -> float:
@@ -370,3 +371,34 @@ def hog_energy(image,
 
     energy = np.mean(hog_vec ** 2)
     return energy
+
+
+def lbp_entropy(image, P=8, R=1):
+    """
+    Compute LBP entropy for a 2D grayscale image.
+
+    Args:
+        image: 2D grayscale image (numpy array).
+        P: number of neighbor points.
+        R: radius.
+
+    Returns:
+        Scalar LBP entropy (float).
+    """
+    lbp = local_binary_pattern(
+        image,
+        P=P,
+        R=R,
+        method='uniform'
+    )
+
+    # Number of bins for uniform LBP
+    n_bins = P + 2
+
+    hist, _ = np.histogram(
+        lbp,
+        bins=np.arange(0, n_bins + 1),
+        density=True
+    )
+
+    return float(entropy(hist))

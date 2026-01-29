@@ -26,7 +26,7 @@ from typing import Dict, List, Tuple, Callable
 from itertools import combinations
 
 # Import our custom modules
-from methods import morans_i, spatial_entropy, compute_glcm_contrast, compute_glcm_homogeneity, compute_glcm_energy, compute_glcm_correlation, compute_hu_moments, hog_energy
+from methods import morans_i, spatial_entropy, compute_glcm_contrast, compute_glcm_homogeneity, compute_glcm_energy, compute_glcm_correlation, compute_hu_moments, hog_energy, lbp_entropy
 from visualize import (
     plot_1d_histogram,
     plot_1d_boxplot,
@@ -93,6 +93,13 @@ METHOD_REGISTRY = {
         'description': "Histogram of Oriented Gradients energy (gradient pattern strength)",
         'unit': "HOG Energy",
         'compute_func': lambda img_arr: hog_energy(img_arr, pixels_per_cell=(16, 16), cells_per_block=(1, 1), orientations=9),
+        'input_type': 'array',
+    },
+    'lbp_entropy': {
+        'name': "LBP Entropy",
+        'description': "Local Binary Pattern entropy (texture complexity)",
+        'unit': "Entropy",
+        'compute_func': lambda img_arr: lbp_entropy(img_arr, P=8, R=1),
         'input_type': 'array',
     },
 }
