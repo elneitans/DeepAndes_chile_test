@@ -386,6 +386,14 @@ Examples:
         help='Limit processing to the first N polygons (default: process all)'
     )
 
+    parser.add_argument(
+        '--class-filter',
+        type=int,
+        default=None,
+        choices=[1, 2, 3],
+        help='Filter to process only polygons of a specific class (1=geo, 2=ground, 3=road). Default: process all classes'
+    )
+
     return parser.parse_args()
 
 
@@ -418,9 +426,21 @@ def main():
 
     # Process each polygon
     all_metadata = []
+    class_names = {1: 'geo', 2: 'ground', 3: 'road'}
+    skipped_count = 0
+    
+    if args.class_filter is not None:
+        print(f"\nFiltering to class {args.class_filter} ({class_names.get(args.class_filter, 'unknown')}) only\n")
+    
     for idx, row in gdf.iterrows():
         polygon_class = row['class']
-        class_name = {1: 'geo', 2: 'ground', 3: 'road'}.get(polygon_class, 'unknown')
+        class_name = class_names.get(polygon_class, 'unknown')
+        
+        # Skip if class filter is set and polygon doesn't match
+        if args.class_filter is not None and polygon_class != args.class_filter:
+            skipped_count += 1
+            continue
+        
         fid = idx  # FID from GeoPackage
         print(f"\nProcessing polygon {idx + 1}/{len(gdf)} (FID: {fid}, class: {polygon_class} - {class_name})...")
         try:
@@ -454,6 +474,8 @@ def main():
     summary_path.write_text(json.dumps(summary_data, indent=2))
 
     print(f"\n\nDone! Processed {len(all_metadata)} polygons.")
+    if args.class_filter is not None:
+        print(f"Skipped {skipped_count} polygons (class filter: {args.class_filter})")
     print(f"Output directory: {args.output}")
     print(f"Summary saved to: {summary_path}")
 
